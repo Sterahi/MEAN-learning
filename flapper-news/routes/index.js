@@ -1,9 +1,20 @@
-var express = require('express');
-var router = express.Router();
+var express = require('express')
+var router = express.Router()
+var mongoose = require('mongoose')
+var post = mongoose.model('Post')
+var comment = mongoose.model('Comment')
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
+router.get('/', function (req, res, next) {
+  res.render('index', { title: 'Express' })
+})
 
-module.exports = router;
+router.get('/posts', function (req, res, next) {
+  post.find(function (err, posts) {
+    if (err) { return next(err) }
+
+    res.json(posts)
+  })
+})
+
+module.exports = router
