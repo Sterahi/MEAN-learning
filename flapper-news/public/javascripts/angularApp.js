@@ -1,33 +1,67 @@
-var app = angular.module('flapperNews', [])
+angular.module('flapperNews', ['ui.router'])
+  .config([
+    '$stateProvider',
+    '$urlRouterProvider',
+    function($stateProvider, $urlRouterProvider){
+      $stateProvider
+        .state('home', {
+          url: '/home',
+          templateUrl: '/home.html',
+          controller: 'MainCtrl',
+          resolve: {
+            postPromise: ['posts', function(posts){
+              return posts.getAll();
+            }]
+          }
+        });
+      $urlRouterProvider.otherwise('home');
+    }])
 
-app.factory('posts', [ function () {
-  var o = {
-    posts: []
-  }
-  return o
-}])
+  .factory('posts', ['$http', function($http){
+    var o = {
+      posts: []
+    }
 
-app.controller('MainCtrl', [
+    o.getAll = function() {
+      return $http.get('/posts').success(function(data){
+        angular.copy(data, o.posts)
+      })
+    }
+
+    o.create = function(post) {
+      return $http.post('/posts', post).success( function (data){
+        o.posts.push(data)
+      })
+    }
+
+    o.upvote = function(post) {
+      return $http.put('/posts/' + post._id + '/upvote')
+        .success(function(data){
+          post.upvotes += 1
+        })
+    }
+
+    return o
+  }])
+
+
+  .controller('MainCtrl', [
   '$scope',
+  '$stateParams',
   'posts',
-  function ($scope, posts) { // $ Scope is declared above as a variable.
-    $scope.posts = posts.posts
-    $scope.posts = [
-        {title: 'post 1', upvotes: 5},
-        {title: 'post 2', upvotes: 3},
-        {title: 'post 3', upvotes: 89},
-        {title: 'post 4', upvotes: 1}
-    ]
-    $scope.addPost = function () {
-      if (!$scope.title || $scope.title === '') { return }
-      $scope.posts.push({title: $scope.title,
-                          link: $scope.link,
-                          upvotes: 0 })
+  function($scope, $stateParams, posts){
+    $scope.posts = posts.posts;
+
+    $scope.addPost = function(){
+      if(!$scope.title || $scope.title === ''){ return }
+      posts.create({
+        title: $scope.title,
+        link: $scope.link
+      })
       $scope.title = ''
       $scope.link = ''
     }
-    $scope.incrementUpvotes = function (post) {
-      post.upvotes += 1
+    $scope.incrementUpvotes = function(post){
+      posts.upvote(post)
     }
-  }
-])
+  }]);

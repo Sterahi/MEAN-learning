@@ -10,6 +10,28 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+//Calls the findById method on any post that has the /:post directive.
+router.param('post', function(req, res, next, id){
+  var query = Post.findById(id)
+  query.exec (function (err, post){
+    if (err) { return next(err) }
+    if (!post) { return next( new Error ('cant\'t find post'))}
+    req.post = post;
+    return next()
+  })
+})
+
+//Calls the findById method on any post that has the /:comment directive.
+router.param('comment', function(req, res, next, id){
+  var query = Comment.findById(id)
+  query.exec (function (err, post){
+    if (err) { return next (err) }
+    if (!post) { return next( new Error ('cant\'t find post'))}
+    req.comment = comment;
+    return next()
+  })
+})
+
 // Route for loading posts array (in JSON)
 router.get('/posts', function(req, res, next){
   Post.find(function(err, posts){
@@ -29,20 +51,12 @@ router.post('/posts', function(req, res, next){
   })
 })
 
-//Calls the findById method on any post that has the /:post directive.
-router.param('post', function(req, res, next, id){
-  var query = Post.findById(id)
-  query.exec (function (err, post){
-    if (err) { return next (err) }
-    if (!post) { return next( new Error ('cant\'t find post'))}
-    req.post = post;
-    return next()
-  })
-})
-
 //Route to retrieve specific posts
 router.get('/posts/:post', function(req, res) {
-  res.json(req.post)
+  req.post.populate('comments', function(err, post){
+    if (err) { return next(err) }
+    res.json(req.post)
+  })
 })
 
 // Calls the Upvote Method from /models/Posts.js
@@ -63,25 +77,6 @@ router.post('/posts/:post/comments', function (req, res,next) {
       if (err) { return next(err) }
       res.json(comment)
     })
-  })
-})
-
-// Calls the Upvote Method from /models/Posts.js
-router.put('/posts/:post/upvote', function(req, res, next) {
-  req.post.upvote(function(err, post){
-    if (err) { return next(err) }
-    res.json(post)
-  })
-})
-
-//Calls the findById method on any post that has the /:comment directive.
-router.param('comment', function(req, res, next, id){
-  var query = Comment.findById(id)
-  query.exec (function (err, post){
-    if (err) { return next (err) }
-    if (!post) { return next( new Error ('cant\'t find post'))}
-    req.comment = comment;
-    return next()
   })
 })
 
