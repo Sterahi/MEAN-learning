@@ -44,6 +44,11 @@ app.factory('posts', ['$http', function ($http) {
       o.posts.push(data)
     })
   }
+  o.get = function (id) {
+    return $http.get('/posts/' + id).then(function (res) {
+      return res.data
+    })
+  }
 app.config([
   '$stateProvider',
   '$urlRouterProvider',
@@ -65,7 +70,7 @@ app.config([
         controller: 'PostsCtrl',
         resolve: {
           post: ['$stateParams', 'posts', function ($stateParams, posts) {
-            return posts.get($stateParams.id)
+            return posts.get($stateParams._id)
           }]
         }
       })
@@ -79,10 +84,8 @@ app.config([
       })
   }
 
-  o.get = function (id) {
-    return $http.get('/posts/' + id).then(function (res) {
-      return res.data
-    })
+  o.addComment = function (id, comment) {
+    return $http.post('/posts/' + id + '/comments', comment)
   }
 
   return o
@@ -111,7 +114,7 @@ app.controller('MainCtrl', [
 app.controller('PostsCtrl', [
   '$scope',
   'posts',
-  'posts',
+  'post',
   function ($scope, posts, post) {
     $scope.post = post
     $scope.incrementUpvotes = function (comment) {
@@ -119,10 +122,11 @@ app.controller('PostsCtrl', [
     }
     $scope.addComment = function () {
       if ($scope.body === '') { return }
-      $scope.post.comments.push({
+      posts.addComment(post._id, {
         body: $scope.body,
-        author: 'user',
-        upvotes: 0
+        author: 'user'
+      }).success(function (comment) {
+        $scope.post.comments.push(comment)
       })
       $scope.body = ''
     }
