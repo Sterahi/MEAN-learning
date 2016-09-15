@@ -11,7 +11,7 @@ var UserSchema = new mongoose.Schema({
 })
 
 UserSchema.methods.setPassword = function (password) {
-  this.salt = crypto.randomByes(16).toString('hex')
+  this.salt = crypto.randomBytes(16).toString('hex')
   this.hash = crypto.pbkdf2Sync(password, this.salt, 100, 64).toString('hex')
 }
 
@@ -30,7 +30,7 @@ UserSchema.methods.generateJWT = function () {
   return jwt.sign({
     _id: this._id,
     username: this.username,
-    exp: parseInt(exp.getTime() / 1000)
+    exp: parseInt(exp.getTime() / 1000, 0)
   }, 'SECRET') /* SECRET is the secret used to sign && encrypt our passwords, should be enviroment variable instead. */
 }
 

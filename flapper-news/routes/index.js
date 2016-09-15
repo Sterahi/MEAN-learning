@@ -1,10 +1,20 @@
+/* Various Dependencies */
 var express = require('express')
 var mongoose = require('mongoose')
 var passport = require('passport')
+var jwt = require('express-jwt')
+
 var router = express.Router()
+
+/* Database Models */
 var Post = mongoose.model('Post')
 var Comment = mongoose.model('Comment')
 var User = mongoose.model('User')
+
+/*                  *Has to match secret in Users.js                             */
+/*                  *                      * Used to access Users.js properties. */
+/*                  *                      *                                     */
+var auth = jwt({ secret: 'SECRET', userProperty: 'payload' })
 
 /* GET home page. */
 // Default Route. (keeping for references sake)
@@ -43,8 +53,9 @@ router.get('/posts', function (req, res, next) {
 })
 
 // Route for adding Posts to DB!
-router.post('/posts', function (req, res, next) {
+router.post('/posts', auth, function (req, res, next) {
   var post = new Post(req.body)
+  post.author = req.payload.username
   // Error checking on posts.
   post.save(function (err, post) {
     if (err) { return next(err) }
@@ -62,16 +73,17 @@ router.get('/posts/:post', function (req, res, next) {
 })
 
 // Calls the Upvote Method from /models/Posts.js
-router.put('/posts/:post/upvote', function (req, res, next) {
+router.put('/posts/:post/upvote', auth, function (req, res, next) {
   req.post.upvote(function (err, post) {
     if (err) { return next(err) }
     res.json(post)
   })
 })
 // Displays all comments associated with a specified post
-router.post('/posts/:post/comments', function (req, res, next) {
+router.post('/posts/:post/comments', auth, function (req, res, next) {
   var comment = new Comment(req.body)
   comment.post = req.post
+  comment.author = req.payload.username
   comment.save(function (err, comment) {
     if (err) { return next(err) }
     req.post.comments.push(comment)
@@ -83,7 +95,7 @@ router.post('/posts/:post/comments', function (req, res, next) {
 })
 
 // Allows posts to be upvoted.
-router.put('/posts/:post/comments/:comment/upvote', function (req, res, next) {
+router.put('/posts/:post/comments/:comment/upvote', auth, function (req, res, next) {
   req.comment.upvote(function (err, comment) {
     if (err) { return next(err) }
     res.json(comment)
@@ -91,8 +103,10 @@ router.put('/posts/:post/comments/:comment/upvote', function (req, res, next) {
 })
 
 router.post('/register', function (req, res, next) {
-  if (!req.body.username || !req.body.password) {
-    return res.status(400).json({ message: 'Please fill out all blank fields' })
+  if (!req.body.username) {
+    return res.status(400).json({ message: 'USERNAME: ' + req.body.password })
+  } else if (!req.body.password) {
+    return res.status(400).json({ message: 'PASSWORD: ' + req.body.password })
   }
   var user = new User()
 
@@ -107,8 +121,10 @@ router.post('/register', function (req, res, next) {
 })
 
 router.post('/login', function (req, res, next) {
-  if (!req.body.username || !req.body.password) {
-    return res.status(400).json({ message: 'Please fill out all fields"' })
+  if (!req.body.username) {
+    return res.status(400).json({ message: 'Please fill out Username field' })
+  } else if (!req.body.password) {
+    return res.status(400).json({ message: 'Please fill out Password field' })
   }
 
   passport.authenticate('local', function (err, user, info) {
