@@ -53,47 +53,55 @@ app.config([
 app.factory('auth', ['$http', '$window', function ($http, $window) {
   var auth = {}
 
+  /* Method to Save token to the local storage */
   auth.saveToken = function (token) {
     $window.localStorage['flapper-news-token'] = token
   }
 
+  /* Retrieve token */
   auth.getToken = function (token) {
-    return $window.localStorage ['flapper-news-token']
+    if ($window.localStorage['flapper-news-token'] !== 'undefined')
+      return $window.localStorage ['flapper-news-token']
+    else {
+      return false
+    }
   }
 
+  /* Is someone currently logged in? */
   auth.isLoggedIn = function () {
     var token = auth.getToken()
-
     if (token) {
       var payload = JSON.parse($window.atob(token.split('.')[1]))
-
       return payload.exp > Date.now() / 1000
     } else {
       return false
     }
   }
 
-  auth.CurrentUser = function () {
+  /* Who is currently logged in? */
+  auth.currentUser = function () {
     if (auth.isLoggedIn()) {
       var token = auth.getToken()
       var payload = JSON.parse($window.atob(token.split('.')))
-
       return payload.username
     }
   }
 
+  /* Allow registration */
   auth.register = function (user) {
     return $http.post('/register', user).success(function (data) {
       auth.saveToken(data.token)
     })
   }
 
+  /* Allow logging in */
   auth.logIn = function (user) {
     return $http.post('/login', user).success(function (data) {
       auth.saveToken(data.token)
     })
   }
 
+  /* Allow logging out (currently broken) */
   auth.logOut = function () {
     $window.localStorage.removeItem('flapper-news-token')
   }
@@ -102,7 +110,7 @@ app.factory('auth', ['$http', '$window', function ($http, $window) {
 }])
 
 /* Factory for Posts and all the required methods  */
-app.factory('posts', ['$http', 'auth', function ($http) {
+app.factory('posts', ['$http', 'auth', function ($http, auth) {
   /* Initial Declaration of Posts Array */
   var o = {
     posts: []
@@ -136,7 +144,7 @@ app.factory('posts', ['$http', 'auth', function ($http) {
     })
   }
 
-  /* Upvoting  post*/
+  /* Upvoting post */
   o.upvote = function (post) {
     return $http.put('/posts/' + post._id + '/upvote', null, {
       headers: { Authorization: 'Bearer ' + auth.getToken() }
@@ -146,8 +154,7 @@ app.factory('posts', ['$http', 'auth', function ($http) {
     })
   }
 
-  /* Upvote Comment. Currently broken and troubleshooting.
-     All variables are being passed to function properly, still not upvoting.*/
+  /* Upvote Comment. */
   o.upvoteComment =
   function (post, comment) {
     return $http.put('/posts/' + post._id + '/comments/' + comment._id + '/upvote', null, {
@@ -161,7 +168,7 @@ app.factory('posts', ['$http', 'auth', function ($http) {
   /* Returning o to return all of Posts methods.*/
   return o
 }])
-
+/* ------------------------------------------------------------------------*/
 /* Controller for homepage. */
 app.controller('MainCtrl', [
   '$scope',
@@ -188,6 +195,7 @@ app.controller('MainCtrl', [
     }
   }])
 /* ------------------------------------------------------------------------*/
+/* Controller for New posts && comments */
 app.controller('PostsCtrl', [
   '$scope',
   'posts',
@@ -215,6 +223,7 @@ app.controller('PostsCtrl', [
   }
 ])
 /* ------------------------------------------------------------------------*/
+/* Controller for all authorization */
 app.controller('AuthCtrl', [
   '$scope',
   '$state',
@@ -222,29 +231,30 @@ app.controller('AuthCtrl', [
   function ($scope, $state, auth) {
     $scope.user = {}
 
+    $scope.logIn = function () {
+      auth.logIn($scope.user).error(function (error) {
+        $scope.error = error
+      }).then(function () {
+        $state.go('home')
+      })
+    }
+
     $scope.register = function () {
       auth.register($scope.user).error(function (error) {
         $scope.error = error
       }).then(function () {
         $state.go('home')
       })
-
-      $scope.logIn = function () {
-        auth.logIn($scope.user).error(function (error) {
-          $scope.error = error
-        }).then(function () {
-          $state.go('home')
-        })
-      }
     }
   }
 ])
-
+/* ------------------------------------------------------------------------*/
+/* Controller for navigation */
 app.controller('NavCtrl', [
   '$scope',
   'auth',
   function ($scope, auth) {
     $scope.isLoggedIn = auth.isLoggedIn
-    $scope.CurrentUser = auth.currentUser
-    $scope.logOut = auth.logout
+    $scope.currentUser = auth.currentUser
+    $scope.logOut = auth.logOut
   }])
