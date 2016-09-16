@@ -60,11 +60,7 @@ app.factory('auth', ['$http', '$window', function ($http, $window) {
 
   /* Retrieve token */
   auth.getToken = function (token) {
-    if ($window.localStorage['flapper-news-token'] !== 'undefined')
-      return $window.localStorage ['flapper-news-token']
-    else {
-      return false
-    }
+    return $window.localStorage['flapper-news-token']
   }
 
   /* Is someone currently logged in? */
@@ -80,9 +76,9 @@ app.factory('auth', ['$http', '$window', function ($http, $window) {
 
   /* Who is currently logged in? */
   auth.currentUser = function () {
+    var token = auth.getToken()
     if (auth.isLoggedIn()) {
-      var token = auth.getToken()
-      var payload = JSON.parse($window.atob(token.split('.')))
+      var payload = JSON.parse($window.atob(token.split('.')[1]))
       return payload.username
     }
   }
